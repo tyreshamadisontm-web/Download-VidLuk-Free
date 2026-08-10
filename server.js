@@ -254,11 +254,24 @@ app.post("/api/process", async (req, res) => {
       error
     );
 
-    res.status(500).json({
-      error:
-        error.message ||
-        "Video processing failed."
-    });
+    let message =
+  error.message ||
+  "Video processing failed.";
+
+if (
+  message.includes("429") ||
+  message.includes("not a bot") ||
+  message.includes("Sign in to confirm")
+) {
+  message =
+    "YouTube is blocking requests from the free server. " +
+    "No cookies or account information were used. " +
+    "Try another supported public video URL.";
+}
+
+res.status(500).json({
+  error: message
+});
   }
 });
 
