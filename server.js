@@ -12,6 +12,9 @@ app.use((req,res,next)=>{
 });
 
 app.get('/health', (req,res)=>res.json({ok:true, app:'VidLuk Free', processing:'browser'}));
-app.use(express.static(path.join(__dirname,'..','public'), {extensions:['html']}));
-app.get('*',(req,res)=>res.sendFile(path.join(__dirname,'..','public','index.html')));
+app.use(express.static(__dirname));
+
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "index.html"));
+});
 app.listen(PORT,'0.0.0.0',()=>console.log(`VidLuk Free running on port ${PORT}`));
