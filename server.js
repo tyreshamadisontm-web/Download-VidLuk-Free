@@ -16,55 +16,32 @@ const WORK_DIR = path.join(os.tmpdir(), "vidluk");
 fs.mkdirSync(WORK_DIR, { recursive: true });
 
 app.use(express.json({ limit: "1mb" }));
-
-app.use((req, res, next) => {
-  res.setHeader("X-Content-Type-Options", "nosniff");
-  res.setHeader("X-Frame-Options", "DENY");
-  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
-  res.setHeader(
-    "Permissions-Policy",
-    "camera=(), microphone=(), geolocation=()"
-  );
-  res.setHeader(
-    "Content-Security-Policy",
-    "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; media-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'"
-  );
-
-  next();
-});
-
 app.use(express.static(__dirname));
+
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
 function runCommand(command, args) {
   return new Promise((resolve, reject) => {
-    const process = spawn(command, args);
+    const child = spawn(command, args);
 
-    let stdout = "";
     let stderr = "";
 
-    process.stdout.on("data", (data) => {
-      stdout += data.toString();
-    });
-
-    process.stderr.on("data", (data) => {
+    child.stderr.on("data", (data) => {
       stderr += data.toString();
     });
 
-    process.on("error", (error) => {
-      reject(error);
-    });
+    child.on("error", reject);
 
-    process.on("close", (code) => {
+    child.on("close", (code) => {
       if (code === 0) {
-        resolve(stdout);
+        resolve();
       } else {
         reject(
           new Error(
             stderr.slice(-3000) ||
-              "Command failed with exit code " + code
+            "Command failed."
           )
         );
       }
@@ -74,24 +51,26 @@ function runCommand(command, args) {
 
 function getVideoDuration(file) {
   return new Promise((resolve, reject) => {
-    const process = spawn(ffmpeg, ["-i", file]);
+    const child = spawn(ffmpeg, ["-i", file]);
 
     let output = "";
 
-    process.stderr.on("data", (data) => {
+    child.stderr.on("data", (data) => {
       output += data.toString();
     });
 
-    process.on("error", reject);
+    child.on("error", reject);
 
-    process.on("close", () => {
+    child.on("close", () => {
       const match = output.match(
         /Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/i
       );
 
       if (!match) {
         reject(
-          new Error("Could not determine video duration.")
+          new Error(
+            "Could not determine video duration."
+          )
         );
         return;
       }
@@ -134,7 +113,9 @@ function createClip(
 }
 
 app.post("/api/process", async (req, res) => {
-  const url = String(req.body?.url || "").trim();
+  const url = String(
+    req.body?.url || ""
+  ).trim();
 
   if (!url) {
     return res.status(400).json({
@@ -144,14 +125,21 @@ app.post("/api/process", async (req, res) => {
 
   if (!/^https?:\/\//i.test(url)) {
     return res.status(400).json({
-      error: "The URL must start with http:// or https://."
+      error:
+        "The URL must start with http:// or https://."
     });
   }
 
   const jobId = crypto.randomUUID();
-  const jobDir = path.join(WORK_DIR, jobId);
 
-  fs.mkdirSync(jobDir, { recursive: true });
+  const jobDir = path.join(
+    WORK_DIR,
+    jobId
+  );
+
+  fs.mkdirSync(jobDir, {
+    recursive: true
+  });
 
   const inputFile = path.join(
     jobDir,
@@ -170,15 +158,16 @@ app.post("/api/process", async (req, res) => {
 
     if (!fs.existsSync(inputFile)) {
       throw new Error(
-        "Video download completed but the MP4 file was not found."
+        "Video download failed."
       );
     }
 
-    console.log("Reading video duration...");
-
-    const duration = await getVideoDuration(
-      inputFile
+    console.log(
+      "Reading video duration..."
     );
+
+    const duration =
+      await getVideoDuration(inputFile);
 
     if (!duration || duration <= 0) {
       throw new Error(
@@ -205,14 +194,21 @@ app.post("/api/process", async (req, res) => {
 
     const clips = [];
 
-    for (let i = 0; i < starts.length; i++) {
+    for (
+      let i = 0;
+      i < starts.length;
+      i++
+    ) {
       const start = starts[i];
 
       const filename =
         "clip-" + (i + 1) + ".mp4";
 
       const outputFile =
-        path.join(jobDir, filename);
+        path.join(
+          jobDir,
+          filename
+        );
 
       console.log(
         "Creating " + filename
@@ -226,9 +222,15 @@ app.post("/api/process", async (req, res) => {
       );
 
       clips.push({
-        name: "Clip " + (i + 1),
-        start: Math.round(start),
-        duration: Math.round(clipLength),
+        name:
+          "Clip " + (i + 1),
+
+        start:
+          Math.round(start),
+
+        duration:
+          Math.round(clipLength),
+
         url:
           "/api/files/" +
           jobId +
@@ -245,7 +247,10 @@ app.post("/api/process", async (req, res) => {
     });
 
   } catch (error) {
-    console.error(error);
+    console.error(
+      "VidLuk error:",
+      error
+    );
 
     res.status(500).json({
       error:
