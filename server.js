@@ -149,12 +149,14 @@ app.post("/api/process", async (req, res) => {
   try {
     console.log("Downloading video...");
 
-    await youtubedl(url, {
-      output: inputFile,
-      format: "bestvideo+bestaudio/best",
-      mergeOutputFormat: "mp4",
-      noPlaylist: true
-    });
+   await youtubedl(url, {
+  output: inputFile,
+  format: "bestvideo+bestaudio/best",
+  mergeOutputFormat: "mp4",
+  noPlaylist: true,
+  jsRuntimes: "deno:/opt/render/project/src/.deno/bin/deno",
+  remoteComponents: "ejs:npm"
+});
 
     if (!fs.existsSync(inputFile)) {
       throw new Error(
