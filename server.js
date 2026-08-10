@@ -169,8 +169,7 @@ app.post("/api/process", async (req, res) => {
 
       const start = starts[i];
 
-      const filename =
-        `clip-${i + 1}.mp4`;
+      const filename = `clip-${i + 1}.mp4`;
 
       const outputFile =
         path.join(
