@@ -1,0 +1,20 @@
+{
+  "name": "vidluk-free-clipper",
+  "version": "2.0.1",
+  "description": "Browser-side free video clipper for GitHub + Render. No paid APIs, no API keys.",
+  "main": "server/server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "@ffmpeg/ffmpeg": "^0.12.15",
+    "@ffmpeg/util": "^0.12.2",
+    "@ffmpeg/core": "^0.12.10"
+  },
+  "license": "MIT"
+}
